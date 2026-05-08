@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Iniciación de Transcripción Eucariota</title>
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <style>
+    .theme-toggle{position:fixed;top:20px;right:20px;z-index:1000;background:var(--surface);border:1px solid var(--border);border-radius:50%;width:50px;height:50px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.2rem;box-shadow:0 2px 8px rgba(0,0,0,0.1);transition:all 0.3s ease;}
+    .theme-toggle:hover{transform:scale(1.1);}
+
+    .quiz-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:2000;align-items:center;justify-content:center;}
+    .quiz-modal.show{display:flex;}
+    .quiz-content{background:var(--surface);border-radius:20px;padding:30px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+
+    .quiz-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+    .quiz-title{font-size:1.5rem;font-weight:600;color:var(--text);}
+    .quiz-close{background:none;border:none;font-size:2rem;cursor:pointer;color:var(--text-muted);line-height:1;}
+
+    .quiz-question{font-size:1.1rem;margin-bottom:20px;line-height:1.6;color:var(--text);}
+    .quiz-options{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
+    .quiz-option{padding:15px 20px;background:var(--bg);border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all 0.2s ease;font-size:1rem;color:var(--text);}
+    .quiz-option:hover{border-color:var(--accent);background:var(--accent-light);}
+    .quiz-option.selected{border-color:var(--accent);background:var(--accent-light);}
+    .quiz-option.correct{border-color:#10b981;background:rgba(16,185,129,0.1);}
+    .quiz-option.incorrect{border-color:#ef4444;background:rgba(239,68,68,0.1);}
+
+    .quiz-feedback{padding:15px;border-radius:12px;margin-bottom:20px;display:none;}
+    .quiz-feedback.show{display:block;}
+    .quiz-feedback.correct{background:rgba(16,185,129,0.1);border:1px solid #10b981;color:#047857;}
+    .quiz-feedback.incorrect{background:rgba(239,68,68,0.1);border:1px solid #ef4444;color:#dc2626;}
+
+    .quiz-navigation{display:flex;gap:10px;justify-content:space-between;}
+    .quiz-btn{padding:12px 24px;border:none;border-radius:10px;cursor:pointer;font-size:1rem;font-weight:500;transition:all 0.2s ease;}
+    .quiz-btn.primary{background:var(--accent);color:white;}
+    .quiz-btn.primary:hover{background:#2563eb;}
+    .quiz-btn.secondary{background:var(--bg);color:var(--text);border:1px solid var(--border);}
+
+    .quiz-progress{margin-bottom:20px;}
+    .quiz-progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+    .quiz-progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 0.3s ease;}
+
+    .quiz-score{text-align:center;font-size:1.5rem;font-weight:600;margin:20px 0;color:var(--text);}
+    .quiz-complete{text-align:center;}
+    .quiz-complete-icon{font-size:4rem;margin-bottom:20px;}
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" id="themeToggle" title="Cambiar tema"><span id="themeIcon">🌙</span></button>
+
+  <main class="app">
+    <header class="header">
+      <h1 class="title">Iniciación de Transcripción</h1>
+      <p class="subtitle">En animales eucariontes</p>
+      <div class="header-controls">
+        <button class="btn quiz-btn" id="quizBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.38 3.14-1.02 4.4l2.72 2.72c.8-.52 1.46-1.27 1.75-2.15l3.28-3.28a6.472 6.472 0 0 0-.91-4.36C20.75 5.63 17.05 2 12 2S3.25 5.63 2.5 8.14a6.472 6.472 0 0 0-.91 4.36l3.28 3.28c-.28.88-.95 1.54-1.75 2.15l-2.72-2.72A6.5 6.5 0 0 1 9.5 3zM12 15c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
+          </svg>
+          Quiz
+        </button>
+      </div>
+    </header>
+
+    <div class="content-wrapper">
+      <div class="main-content">
+        <section class="canvas-section">
+          <canvas id="canvas"></canvas>
+
+          <nav class="controls">
+            <button class="btn" id="play">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+              Iniciar
+            </button>
+            <button class="btn ghost" id="step">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+              </svg>
+              Paso
+            </button>
+            <button class="btn ghost" id="reset">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.65 6.35C16.2 4.9C14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+              </svg>
+              Reiniciar
+            </button>
+          </nav>
+
+          <div class="stepper" id="stepper">
+            <div class="step" data-step="1"><span class="dot"></span><span class="label">Pol II</span></div>
+            <div class="step" data-step="2"><span class="dot"></span><span class="label">Caja TATA</span></div>
+            <div class="step" data-step="3"><span class="dot"></span><span class="label">INR</span></div>
+            <div class="step" data-step="4"><span class="dot"></span><span class="label">Factores</span></div>
+            <div class="step" data-step="5"><span class="dot"></span><span class="label">Complejo</span></div>
+          </div>
+
+          <div class="card info" id="infoCard">
+            <h2 class="card-title" id="cardTitle">Iniciación</h2>
+            <div class="card-body" id="cardBody"><p>Haz clic en los elementos o usa los controles para explorar.</p></div>
+          </div>
+        </section>
+      </div>
+
+      <aside class="elements-sidebar">
+        <div class="elements-section">
+          <h2>Elementos</h2>
+          <div class="elements-grid">
+            <div class="element-card polII" data-element="polII">
+              <div class="element-visual polII">
+                <svg viewBox="0 0 60 60">
+                  <ellipse cx="30" cy="30" rx="14" ry="11" fill="#ff6b35" stroke="#d1410c"/>
+                  <ellipse cx="30" cy="17" rx="8" ry="5" fill="#ff9a56"/>
+                  <ellipse cx="30" cy="42" rx="10" ry="6" fill="#dc2626"/>
+                </svg>
+              </div>
+              <h3>Pol II</h3>
+            </div>
+
+            <div class="element-card tata" data-element="tata">
+              <div class="element-visual tata">
+                <svg viewBox="0 0 60 60">
+                  <rect x="12" y="16" width="36" height="28" rx="6" fill="#ef4444"/>
+                  <text x="30" y="37" text-anchor="middle" font-size="11" fill="white" font-weight="bold">TATA</text>
+                </svg>
+              </div>
+              <h3>Caja TATA</h3>
+            </div>
+
+            <div class="element-card inr" data-element="inr">
+              <div class="element-visual inr">
+                <svg viewBox="0 0 60 60">
+                  <circle cx="30" cy="30" r="18" fill="#3b82f6"/>
+                  <text x="30" y="36" text-anchor="middle" font-size="14" fill="white" font-weight="bold">+1</text>
+                </svg>
+              </div>
+              <h3>INR</h3>
+            </div>
+
+            <div class="element-card tfiid" data-element="tfIID">
+              <div class="element-visual tfiid">
+                <svg viewBox="0 0 60 60">
+                  <path d="M 12 30 Q 20 15 30 20 Q 40 15 48 30 Q 40 45 30 40 Q 20 45 12 30" fill="#6b7280"/>
+                  <circle cx="30" cy="30" r="6" fill="#5a6c7d"/>
+                </svg>
+              </div>
+              <h3>TFIID</h3>
+            </div>
+
+            <div class="element-card tfiib" data-element="tfIIB">
+              <div class="element-visual tfiib">
+                <svg viewBox="0 0 60 60">
+                  <circle cx="18" cy="30" r="10" fill="#718096"/>
+                  <circle cx="42" cy="30" r="10" fill="#a0aec0"/>
+                  <line x1="28" y1="30" x2="32" y2="30" stroke="#4a5568" stroke-width="2"/>
+                </svg>
+              </div>
+              <h3>TFIIB</h3>
+            </div>
+
+            <div class="element-card tfiif" data-element="tfIIF">
+              <div class="element-visual tfiif">
+                <svg viewBox="0 0 60 60">
+                  <circle cx="16" cy="30" r="9" fill="#63b3ed"/>
+                  <circle cx="44" cy="30" r="9" fill="#63b3ed"/>
+                </svg>
+              </div>
+              <h3>TFIIF</h3>
+            </div>
+
+            <div class="element-card tfiie" data-element="tfIIE">
+              <div class="element-visual tfiie">
+                <svg viewBox="0 0 60 60">
+                  <circle cx="18" cy="30" r="8" fill="#4ade80"/>
+                  <circle cx="42" cy="30" r="8" fill="#4ade80"/>
+                </svg>
+              </div>
+              <h3>TFIIE</h3>
+            </div>
+
+            <div class="element-card tfiih" data-element="tfIIH">
+              <div class="element-visual tfiih">
+                <svg viewBox="0 0 60 60">
+                  <path d="M 15 25 Q 15 15 30 15 Q 45 15 45 25 L 44 40 Q 44 45 30 45 Q 16 45 16 40 Z" fill="#f59e0b"/>
+                </svg>
+              </div>
+              <h3>TFIIH</h3>
+            </div>
+          </div>
+
+          <div class="detail-section" style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(148,163,184,0.16)">
+            <h3 id="detailTitle" style="font-size:0.9rem;font-weight:600;color:var(--text);margin-bottom:6px"></h3>
+            <p id="detailText" style="font-size:0.8rem;color:var(--text-muted);line-height:1.5"></p>
+          </div>
+
+          <div class="lab-assistant-messages" id="labAssistantMessages" style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(148,163,184,0.16);max-height:150px;overflow-y:auto;font-size:0.9rem;">
+            <h3 style="font-size:0.9rem;font-weight:600;color:var(--text);margin-bottom:6px">Asistente de Laboratorio</h3>
+            <div id="labAssistantMessageText"></div>
+          </div>
+
+          <div class="lab-assistant-achievements" id="labAssistantAchievements" style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(148,163,184,0.16);font-size:0.85rem;">
+            <h3 style="font-size:0.9rem;font-weight:600;color:var(--text);margin-bottom:6px">Logros</h3>
+            <div id="labAssistantAchievementsList" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Quiz modal (logic in js/main.js) -->
+  <div class="quiz-modal" id="quizModal">
+    <div class="quiz-content">
+      <div class="quiz-header">
+        <h2 class="quiz-title">Quiz de Transcripción</h2>
+        <button class="quiz-close" id="quizClose">&times;</button>
+      </div>
+      <div id="quizArea">
+        <div style="margin-bottom:16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <label for="quizName" style="font-weight:600; color:var(--text); font-size:0.95rem;">Nombre:</label>
+          <input id="quizName" type="text" placeholder="Tu nombre" style="flex:1; min-width:180px; padding:10px 12px; border:2px solid var(--border); border-radius:12px; background:var(--bg); color:var(--text); outline:none;" />
+        </div>
+
+        <div class="quiz-progress"><div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quizProgressFill"></div></div></div>
+        <div class="quiz-question" id="quizQuestion"></div>
+        <div class="quiz-options" id="quizOptions"></div>
+        <div class="quiz-feedback" id="quizFeedback"></div>
+        <div class="quiz-navigation">
+          <button class="quiz-btn secondary" id="quizPrev" style="display:none">Anterior</button>
+          <button class="quiz-btn primary" id="quizNext">Siguiente</button>
+        </div>
+      </div>
+      <div class="quiz-complete" id="quizComplete" style="display:none">
+        <div class="quiz-complete-icon">🎓</div>
+        <h2>¡Quiz Completado!</h2>
+        <div class="quiz-score" id="quizScore"></div>
+        <p>¡Excelente trabajo! Has demostrado un gran conocimiento.</p>
+
+        <div class="quiz-db-preview" id="quizDbPreview" style="margin:18px 0 10px; padding:14px; border:1px solid var(--border); border-radius:12px; background:var(--bg); text-align:left;">
+          <div style="font-weight:700; margin-bottom:8px;">Último resultado</div>
+          <div id="quizDbPreviewText" style="font-size:0.9rem; color:var(--text-muted);">Se guardará al finalizar el quiz.</div>
+        </div>
+
+        <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:14px;">
+          <button class="quiz-btn primary" id="quizRestart">Reiniciar Quiz</button>
+          <button class="quiz-btn secondary" id="quizViewResults">Ver Resultados</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Hint system -->
+  <div class="hint-system" id="hintSystem">
+    <h4>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      Sugerencia
+    </h4>
+    <p class="hint-text" id="hintText">Haz clic para obtener consejos.</p>
+    <div class="hint-actions">
+      <button class="hint-btn primary" id="useHintBtn">Usar Pista</button>
+      <button class="hint-btn secondary" id="closeHintBtn">Cerrar</button>
+    </div>
+  </div>
+
+  <button class="lab-assistant-btn" id="labAssistantBtn" title="Asistente">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/>
+      <path d="m21 21-4.35-4.35"/>
+      <path d="M8 10h.01"/>
+      <path d="M16 10h.01"/>
+      <path d="M12 14h.01"/>
+      <path d="M10 3h4"/>
+      <path d="M12 5v2"/>
+      <path d="M7.66 5.66 9 7"/>
+      <path d="m15 15-2 2"/>
+    </svg>
+  </button>
+
+   <script src="js/lab-assistant.js"></script>
+   <script src="js/main.js"></script>
+</body>
+</html>
+
+
